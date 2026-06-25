@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Custom Game Vault</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+:root {
+  --gold:#C89B3C;--gold-light:#F0E6A2;--gold-dark:#785A28;
+  --bg-deepest:#010A13;--bg-panel:#0D1117;--bg-card:#101820;--bg-card2:#1a2332;
+  --border:#1E2D3D;--border-gold:#785A28;
+  --text-primary:#C8AA6E;--text-bright:#F0E6C8;--text-muted:#5B6678;--text-dim:#3C4A5C;
+  --blue:#0AC8B9;--red:#C84B4B;--win:#1EA35F;--loss:#C84B4B;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg-deepest);color:var(--text-primary);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;}
+header{background:linear-gradient(180deg,#0D1117 0%,#010A13 100%);border-bottom:1px solid var(--border-gold);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;}
+.logo{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700;color:var(--gold);letter-spacing:2px;text-transform:uppercase;}
+.nav-tabs{display:flex;height:100%;}
+.nav-tab{padding:0 14px;display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;}
+.nav-tab:hover{color:var(--text-primary);}
+.nav-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.header-right{display:flex;align-items:center;gap:10px;}
+.upload-btn{background:var(--gold-dark);border:1px solid var(--gold);color:var(--gold-light);padding:8px 14px;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border-radius:2px;display:flex;align-items:center;gap:5px;transition:all 0.2s;}
+.upload-btn:hover{background:var(--gold);color:var(--bg-deepest);}
+.db-status{font-size:11px;display:flex;align-items:center;gap:5px;color:var(--text-muted);}
+.db-dot{width:7px;height:7px;border-radius:50%;background:var(--text-dim);}
+.db-dot.ok{background:var(--win);} .db-dot.err{background:var(--loss);}
+main{max-width:1400px;margin:0 auto;padding:2rem;}
+.view{display:none;} .view.active{display:block;}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin-bottom:2rem;}
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-top:2px solid var(--gold-dark);padding:15px;text-align:center;}
+.stat-card .lbl{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:7px;}
+.stat-card .val{font-size:22px;font-weight:700;color:var(--gold);}
+.stat-card .sub{font-size:11px;color:var(--text-muted);margin-top:3px;}
+.sec-title{font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--text-muted);margin-bottom:1rem;padding-bottom:8px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;}
+.sec-title i{color:var(--gold);font-size:14px;}
+.sort-row{display:flex;gap:7px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;}
+.chip{background:var(--bg-card);border:1px solid var(--border);color:var(--text-muted);padding:4px 11px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border-radius:2px;transition:all 0.2s;}
+.chip:hover{color:var(--text-primary);}
+.chip.on{background:var(--gold-dark);border-color:var(--gold);color:var(--gold-light);}
+.lb{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:2rem;}
+.lb th{background:var(--bg-panel);color:var(--text-muted);font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:9px 11px;text-align:left;border-bottom:1px solid var(--border-gold);cursor:pointer;user-select:none;white-space:nowrap;}
+.lb th:hover{color:var(--gold);}
+.lb td{padding:9px 11px;border-bottom:1px solid var(--border);color:var(--text-bright);vertical-align:middle;}
+.lb tr:hover td{background:var(--bg-card2);}
+.rn{font-size:14px;font-weight:700;color:var(--text-muted);min-width:26px;display:inline-block;}
+.r1 .rn{color:#FFD700;} .r2 .rn{color:#C0C0C0;} .r3 .rn{color:#CD7F32;}
+.pname{font-weight:700;color:var(--text-bright);}
+.mvpb{background:var(--gold-dark);color:var(--gold-light);font-size:9px;font-weight:700;letter-spacing:1px;padding:2px 5px;border-radius:2px;margin-left:5px;text-transform:uppercase;}
+.atag{font-size:10px;color:var(--text-dim);display:block;margin-top:2px;}
+.wrbar{display:flex;align-items:center;gap:7px;}
+.wrfill{height:4px;background:var(--border);border-radius:2px;flex:1;min-width:50px;overflow:hidden;}
+.wrfill-in{height:100%;background:var(--win);border-radius:2px;}
+.game-card{background:var(--bg-card);border:1px solid var(--border);border-left:3px solid var(--border);margin-bottom:10px;padding:13px 16px;display:grid;grid-template-columns:90px 1fr 1fr auto;gap:13px;align-items:center;cursor:pointer;transition:all 0.15s;}
+.game-card:hover{border-color:var(--gold-dark);background:var(--bg-card2);}
+.game-card.win{border-left-color:var(--win);} .game-card.loss{border-left-color:var(--loss);}
+.gres{font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;}
+.gres.win{color:var(--win);} .gres.loss{color:var(--loss);}
+.gdate{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.plist{display:flex;flex-wrap:wrap;gap:4px;}
+.pchip{font-size:10px;color:var(--text-muted);background:var(--bg-panel);padding:2px 5px;border-radius:2px;border:1px solid var(--border);}
+.gscore{font-size:16px;font-weight:700;color:var(--text-bright);text-align:center;}
+.gscore .vs{font-size:10px;color:var(--text-muted);margin:0 4px;}
+.del-btn{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:16px;padding:4px;transition:color 0.2s;}
+.del-btn:hover{color:var(--loss);}
+.tgal{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;}
+.thumb{width:36px;height:25px;object-fit:cover;border:1px solid var(--border);cursor:pointer;}
+.thumb:hover{border-color:var(--gold);}
+.addref{font-size:11px;color:var(--blue);background:none;border:1px solid var(--border);padding:3px 7px;cursor:pointer;border-radius:2px;margin-top:5px;display:inline-flex;align-items:center;gap:3px;}
+.addref:hover{border-color:var(--blue);}
+.overlay{position:fixed;inset:0;background:rgba(1,10,19,0.92);z-index:500;display:none;align-items:center;justify-content:center;padding:2rem;}
+.overlay.open{display:flex;}
+.modal{background:var(--bg-card);border:1px solid var(--border-gold);width:100%;max-width:700px;max-height:90vh;overflow-y:auto;padding:2rem;position:relative;}
+.mtitle{font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:1.5rem;padding-bottom:11px;border-bottom:1px solid var(--border-gold);display:flex;align-items:center;gap:7px;}
+.mclose{position:absolute;top:13px;right:13px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:21px;}
+.mclose:hover{color:var(--text-primary);}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:11px;}
+.fg{display:flex;flex-direction:column;gap:5px;}
+.flbl{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);}
+.fi,.fsel{background:var(--bg-deepest);border:1px solid var(--border);color:var(--text-bright);padding:7px 9px;font-size:12px;border-radius:2px;outline:none;font-family:inherit;transition:border-color 0.2s;width:100%;}
+.fi:focus,.fsel:focus{border-color:var(--gold-dark);}
+.fsel option{background:var(--bg-deepest);}
+.dz{border:2px dashed var(--border-gold);background:var(--bg-panel);padding:32px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:1.5rem;border-radius:2px;}
+.dz:hover,.dz.over{border-color:var(--gold);background:var(--bg-card2);}
+.dz i{font-size:34px;color:var(--gold-dark);margin-bottom:9px;display:block;}
+.dz p{color:var(--text-muted);font-size:12px;}
+.dz input{display:none;}
+.prev{width:100%;max-height:170px;object-fit:contain;background:var(--bg-deepest);border:1px solid var(--border);margin-bottom:1rem;display:none;}
+.prev.v{display:block;}
+.pload{text-align:center;padding:26px;color:var(--text-muted);display:none;}
+.pload.v{display:block;}
+.pload i{font-size:28px;color:var(--gold-dark);margin-bottom:9px;display:block;animation:spin 1.5s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.pres{background:var(--bg-panel);border:1px solid var(--border);padding:1.3rem;margin-bottom:1.3rem;display:none;}
+.pres.v{display:block;}
+.twrap{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:1rem;}
+.tblk{background:var(--bg-panel);border:1px solid var(--border);padding:11px;}
+.tblk h4{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:7px;}
+.pr{display:grid;grid-template-columns:1fr 68px 56px 70px;gap:4px;margin-bottom:4px;align-items:center;}
+.pr input{padding:4px 6px;font-size:11px;}
+.prh{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);}
+.btnp{background:var(--gold-dark);border:1px solid var(--gold);color:var(--gold-light);padding:8px 18px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border-radius:2px;transition:all 0.2s;display:inline-flex;align-items:center;gap:5px;}
+.btnp:hover{background:var(--gold);color:var(--bg-deepest);}
+.btnp:disabled{opacity:0.4;cursor:not-allowed;}
+.btns{background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border-radius:2px;transition:all 0.2s;}
+.btns:hover{border-color:var(--text-muted);color:var(--text-primary);}
+.btnd{background:none;border:1px solid var(--loss);color:var(--loss);padding:6px 11px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border-radius:2px;transition:all 0.2s;}
+.btnd:hover{background:var(--loss);color:white;}
+.brow{display:flex;gap:9px;justify-content:flex-end;margin-top:1rem;}
+.dp{display:grid;grid-template-columns:1fr 88px 52px 100px;gap:7px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;align-items:center;}
+.dp:last-child{border-bottom:none;}
+.dph{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);padding:7px 0 3px;}
+/* ALIASES */
+.ag{background:var(--bg-card);border:1px solid var(--border);padding:15px;margin-bottom:11px;}
+.agh{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
+.agn{font-size:14px;font-weight:700;color:var(--text-bright);}
+.achips{display:flex;flex-wrap:wrap;gap:5px;}
+.ac{background:var(--bg-panel);border:1px solid var(--border);color:var(--text-muted);font-size:11px;padding:3px 9px;border-radius:2px;display:flex;align-items:center;gap:5px;}
+.acx{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:13px;line-height:1;padding:0;}
+.acx:hover{color:var(--loss);}
+.aarow{display:flex;gap:7px;margin-top:9px;}
+.aarow input{flex:1;}
+/* SETTINGS */
+.sbox{background:var(--bg-card);border:1px solid var(--border);padding:18px;margin-bottom:14px;}
+.sbox h3{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:13px;padding-bottom:9px;border-bottom:1px solid var(--border);}
+.info{background:var(--bg-panel);border:1px solid var(--border);border-left:3px solid var(--blue);padding:13px;font-size:12px;color:var(--text-muted);line-height:1.75;}
+.info strong{color:var(--text-primary);}
+.info code{font-family:monospace;background:var(--bg-deepest);padding:1px 5px;border-radius:2px;font-size:11px;color:var(--blue);}
+.step{display:flex;gap:11px;margin-bottom:10px;align-items:flex-start;}
+.sn{background:var(--gold-dark);color:var(--gold-light);font-size:10px;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.srow{display:flex;gap:9px;align-items:flex-end;}
+.srow .fg{flex:1;}
+.kdisp{font-family:monospace;font-size:11px;background:var(--bg-deepest);border:1px solid var(--border);padding:7px 11px;color:var(--text-muted);border-radius:2px;word-break:break-all;margin-top:7px;}
+.iviewer{position:fixed;inset:0;background:rgba(0,0,0,0.96);z-index:1000;display:none;align-items:center;justify-content:center;}
+.iviewer.open{display:flex;}
+.iviewer img{max-width:95vw;max-height:90vh;object-fit:contain;}
+.ivclose{position:absolute;top:16px;right:16px;background:none;border:none;color:white;font-size:28px;cursor:pointer;}
+.empty{text-align:center;padding:65px 20px;color:var(--text-muted);}
+.empty i{font-size:42px;color:var(--text-dim);margin-bottom:13px;display:block;}
+.empty h3{font-size:16px;color:var(--text-primary);margin-bottom:7px;}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--bg-card);border:1px solid var(--border-gold);border-left:3px solid var(--gold);color:var(--text-bright);padding:10px 14px;font-size:12px;z-index:999;display:none;align-items:center;gap:7px;}
+.toast.show{display:flex;} .toast.err{border-left-color:var(--loss);} .toast.ok{border-left-color:var(--win);}
+.spin{display:inline-block;animation:spin 1s linear infinite;font-size:13px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><i class="ti ti-sword"></i> Custom Game Vault</div>
+  <nav class="nav-tabs">
+    <div class="nav-tab active" onclick="go('leaderboard')" id="tab-leaderboard"><i class="ti ti-trophy"></i> Leaderboard</div>
+    <div class="nav-tab" onclick="go('games')" id="tab-games"><i class="ti ti-layout-list"></i> Games</div>
+    <div class="nav-tab" onclick="go('aliases')" id="tab-aliases"><i class="ti ti-users-group"></i> Players</div>
+    <div class="nav-tab" onclick="go('settings')" id="tab-settings"><i class="ti ti-settings"></i> Setup</div>
+  </nav>
+  <div class="header-right">
+    <div class="db-status"><div class="db-dot" id="dbd"></div><span id="dbs">Not configured</span></div>
+    <button class="upload-btn" onclick="openUp()"><i class="ti ti-upload"></i> Add Game</button>
+  </div>
+</header>
+
+<main>
+  <div class="view active" id="view-leaderboard">
+    <div class="stats-grid" id="gstats"></div>
+    <div class="sort-row" id="lbsorts"></div>
+    <div class="sec-title"><i class="ti ti-trophy"></i> Player Rankings</div>
+    <div id="lbcont"></div>
+  </div>
+
+  <div class="view" id="view-games">
+    <div class="sec-title"><i class="ti ti-calendar"></i> All Games</div>
+    <div id="gcont"></div>
+  </div>
+
+  <div class="view" id="view-aliases">
+    <div class="sec-title"><i class="ti ti-users-group"></i> Player Identities</div>
+    <div class="info" style="margin-bottom:1.3rem;">
+      Group multiple IGNs under one real person. For example if <strong>artoriasow</strong> and <strong>gigasadtoponly</strong> are the same person, create a group called <strong>Artorias</strong> and add both IGNs. Stats will merge automatically on the leaderboard.
+    </div>
+    <button class="btnp" style="margin-bottom:1.3rem;" onclick="openGM()"><i class="ti ti-plus"></i> New Player Group</button>
+    <div id="acont"></div>
+  </div>
+
+  <div class="view" id="view-settings">
+    <div class="sbox">
+      <h3><i class="ti ti-robot" style="font-size:13px;vertical-align:-1px;margin-right:5px;"></i>Gemini API Key &mdash; FREE AI Screenshot Parsing</h3>
+      <div class="info" style="margin-bottom:1.3rem;">
+        100% free &mdash; no credit card needed. Each person adds their own key once; it stays in their browser only.
+        <br><br>
+        <div class="step"><div class="sn">1</div><span>Go to <strong>aistudio.google.com</strong> &rarr; sign in with Google</span></div>
+        <div class="step"><div class="sn">2</div><span>Click <strong>Get API Key</strong> (top left) &rarr; <strong>Create API key</strong> &rarr; copy it</span></div>
+        <div class="step"><div class="sn">3</div><span>Paste below and click <strong>Save Key</strong>. Done &mdash; screenshots will auto-parse!</span></div>
+      </div>
+      <div class="srow">
+        <div class="fg"><label class="flbl">Google Gemini API Key (AIza...)</label><input type="password" class="fi" id="antkinp" placeholder="AIzaSy..."></div>
+        <button class="btnp" onclick="saveAntKey()"><i class="ti ti-check"></i> Save Key</button>
+      </div>
+      <div id="antkst" style="margin-top:9px;font-size:12px;color:var(--text-muted);"></div>
+    </div>
+
+    <div class="sbox">
+      <h3><i class="ti ti-database" style="font-size:13px;vertical-align:-1px;margin-right:5px;"></i>JSONBin Shared Database</h3>
+      <div class="info" style="margin-bottom:1.3rem;">
+        <div class="step"><div class="sn">1</div><span>Go to <strong>jsonbin.io</strong> &rarr; Sign up free &rarr; Dashboard</span></div>
+        <div class="step"><div class="sn">2</div><span>Sidebar: <strong>API Keys</strong> &rarr; Create key &rarr; copy the <code>X-Master-Key</code></span></div>
+        <div class="step"><div class="sn">3</div><span>Paste it below &rarr; click <strong>Connect</strong>. A shared bin is created automatically.</span></div>
+        <div class="step"><div class="sn">4</div><span>Save this HTML file (the key &amp; Bin ID are stored in your browser). Upload to GitHub Pages &mdash; all friends share one database.</span></div>
+      </div>
+      <div class="srow">
+        <div class="fg"><label class="flbl">JSONBin API Key (X-Master-Key)</label><input type="password" class="fi" id="akinp" placeholder="$2a$10$..."></div>
+        <button class="btnp" onclick="initDB()"><i class="ti ti-database"></i> Connect</button>
+      </div>
+      <div id="binddisp" style="display:none;"><div class="flbl" style="margin-top:11px;">Bin ID (auto-saved)</div><div class="kdisp" id="bidtxt"></div></div>
+    </div>
+    <div class="sbox">
+      <h3><i class="ti ti-brand-github" style="font-size:13px;vertical-align:-1px;margin-right:5px;"></i>GitHub Pages Deployment</h3>
+      <div class="info">
+        <div class="step"><div class="sn">1</div><span>Go to <strong>github.com</strong> &rarr; New repository &rarr; name it <code>custom-game-vault</code> &rarr; Public</span></div>
+        <div class="step"><div class="sn">2</div><span>Upload this HTML file, rename it to <code>index.html</code></span></div>
+        <div class="step"><div class="sn">3</div><span><strong>Settings &rarr; Pages</strong> &rarr; Source: Deploy from branch &rarr; Branch: <code>main</code> &rarr; Folder: <code>/ (root)</code></span></div>
+        <div class="step"><div class="sn">4</div><span>Live at <code>https://yourusername.github.io/custom-game-vault/</code></span></div>
+        <div class="step"><div class="sn">5</div><span>Everyone who opens the URL shares the same JSONBin database. Config is stored in each browser's localStorage &mdash; each person needs to enter the API key once in Setup.</span></div>
+      </div>
+    </div>
+    <div class="sbox">
+      <h3><i class="ti ti-download" style="font-size:13px;vertical-align:-1px;margin-right:5px;"></i>Backup</h3>
+      <div style="display:flex;gap:9px;flex-wrap:wrap;">
+        <button class="btnp" onclick="exportD()"><i class="ti ti-download"></i> Export JSON</button>
+        <button class="btns" onclick="document.getElementById('impin').click()"><i class="ti ti-upload"></i> Import JSON</button>
+        <input type="file" id="impin" accept=".json" style="display:none;" onchange="importD(event)">
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- UPLOAD MODAL -->
+<div class="overlay" id="upmod">
+  <div class="modal">
+    <div class="mtitle"><i class="ti ti-upload"></i> Add Game Screenshot</div>
+    <button class="mclose" onclick="closeUp()"><i class="ti ti-x"></i></button>
+    <div class="dz" id="dz" onclick="document.getElementById('finp').click()">
+      <i class="ti ti-photo-up"></i>
+      <p><strong>Click to upload</strong> or drag &amp; drop</p>
+      <p style="margin-top:4px;font-size:11px;">LoL post-game scoreboard screenshot</p>
+      <input type="file" id="finp" accept="image/*" onchange="onFile(event)">
+    </div>
+    <img id="prev" class="prev" src="" alt="">
+    <div class="pload" id="pl"><i class="ti ti-loader-2"></i><p>AI is reading the screenshot...</p></div>
+    <div class="pres" id="pr">
+      <div class="frow" style="margin-bottom:11px;">
+        <div class="fg"><label class="flbl">Date</label><input type="date" class="fi" id="fdate"></div>
+        <div class="fg"><label class="flbl">Duration</label><input type="text" class="fi" id="fdur" placeholder="42:29"></div>
+      </div>
+      <div class="frow" style="margin-bottom:1rem;">
+        <div class="fg"><label class="flbl">Winning Team</label>
+          <select class="fsel" id="fwin"><option value="team1">Team 1</option><option value="team2">Team 2</option></select>
+        </div>
+        <div class="fg"><label class="flbl">Notes (optional)</label><input type="text" class="fi" id="fnotes" placeholder="e.g. Pentakill game"></div>
+      </div>
+      <div class="twrap">
+        <div class="tblk"><h4>Team 1</h4><div id="t1rows"></div></div>
+        <div class="tblk"><h4>Team 2</h4><div id="t2rows"></div></div>
+      </div>
+    </div>
+    <div class="brow">
+      <button class="btns" onclick="closeUp()">Cancel</button>
+      <button class="btnp" id="savebtn" onclick="saveGame()" style="display:none;"><i class="ti ti-check"></i> Save Game</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="overlay" id="detmod">
+  <div class="modal" style="max-width:800px;">
+    <button class="mclose" onclick="closeDet()"><i class="ti ti-x"></i></button>
+    <div id="detcont"></div>
+  </div>
+</div>
+
+<!-- GROUP MODAL -->
+<div class="overlay" id="grpmod">
+  <div class="modal" style="max-width:480px;">
+    <div class="mtitle"><i class="ti ti-users-group"></i> New Player Group</div>
+    <button class="mclose" onclick="closeGM()"><i class="ti ti-x"></i></button>
+    <div class="fg" style="margin-bottom:1rem;">
+      <label class="flbl">Display Name (real name / nickname)</label>
+      <input type="text" class="fi" id="gdn" placeholder="e.g. Artorias">
+    </div>
+    <div class="fg" style="margin-bottom:1.3rem;">
+      <label class="flbl">IGN / Aliases — add one at a time</label>
+      <div style="display:flex;gap:7px;">
+        <input type="text" class="fi" id="gain" placeholder="e.g. artoriasow" onkeydown="if(event.key==='Enter')addNA()">
+        <button class="btnp" onclick="addNA()"><i class="ti ti-plus"></i> Add</button>
+      </div>
+      <div id="ngchips" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:9px;"></div>
+    </div>
+    <div class="brow">
+      <button class="btns" onclick="closeGM()">Cancel</button>
+      <button class="btnp" onclick="saveGrp()"><i class="ti ti-check"></i> Save Group</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMAGE VIEWER -->
+<div class="iviewer" id="iv">
+  <button class="ivclose" onclick="closeIV()"><i class="ti ti-x"></i></button>
+  <img id="ivimg" src="" alt="">
+</div>
+
+<div class="toast" id="tst"></div>
+
+<script>
+const CFG_KEY='cgv_cfg_v2', LOC_KEY='cgv_db_v2';
+let CFG=JSON.parse(localStorage.getItem(CFG_KEY)||'{}');
+let DB={games:[],aliases:[]};
+
+function saveCFG(){localStorage.setItem(CFG_KEY,JSON.stringify(CFG));}
+function locSave(d){try{localStorage.setItem(LOC_KEY,JSON.stringify(d));}catch{}}
+function locLoad(){try{return JSON.parse(localStorage.getItem(LOC_KEY)||'null')||{games:[],aliases:[]};}catch{return{games:[],aliases:[]};}}
+
+const JBBASE='https://api.jsonbin.io/v3';
+
+async function dbGet(){
+  if(!CFG.ak||!CFG.bid) return null;
+  try{
+    const r=await fetch(JBBASE+'/b/'+CFG.bid+'/latest',{headers:{'X-Master-Key':CFG.ak}});
+    if(!r.ok) return null;
+    return (await r.json()).record;
+  }catch{return null;}
+}
+
+async function dbSet(d){
+  if(!CFG.ak||!CFG.bid){locSave(d);return true;}
+  try{
+    const r=await fetch(JBBASE+'/b/'+CFG.bid,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':CFG.ak},body:JSON.stringify(d)});
+    if(r.ok){locSave(d);return true;}
+    locSave(d);return false;
+  }catch{locSave(d);return false;}
+}
+
+async function dbCreate(d){
+  const r=await fetch(JBBASE+'/b',{method:'POST',headers:{'Content-Type':'application/json','X-Master-Key':CFG.ak,'X-Bin-Name':'cgv-db','X-Bin-Private':'false'},body:JSON.stringify(d)});
+  if(!r.ok) throw new Error('create failed');
+  return (await r.json()).metadata.id;
+}
+
+function setStatus(s){
+  const dot=document.getElementById('dbd'),txt=document.getElementById('dbs');
+  dot.className='db-dot';
+  if(s==='ok'){dot.classList.add('ok');txt.textContent='Connected';}
+  else if(s==='err'){dot.classList.add('err');txt.textContent='Error';}
+  else if(s==='loc'){txt.textContent='Local only';}
+  else{txt.textContent='Connecting...';}
+}
+
+function saveAntKey(){
+  const k=document.getElementById('antkinp').value.trim();
+  if(!k){document.getElementById('antkst').innerHTML='<span style="color:var(--loss)">Paste a key first</span>';return;}
+  CFG.geminiKey=k; saveCFG();
+  document.getElementById('antkst').innerHTML='<span style="color:var(--win)">&#10003; Key saved! Screenshot parsing enabled.</span>';
+  toast('Gemini key saved!','ok');
+}
+
+async function initDB(){
+  const k=document.getElementById('akinp').value.trim();
+  if(!k){toast('Paste API key first','err');return;}
+  CFG.ak=k; setStatus('...');
+  if(CFG.bid){
+    const d=await dbGet();
+    if(d){DB=d;locSave(d);saveCFG();setStatus('ok');showBid();toast('Connected!','ok');renderLB();return;}
+  }
+  try{
+    const id=await dbCreate({games:[],aliases:[]});
+    CFG.bid=id; saveCFG(); DB={games:[],aliases:[]}; setStatus('ok'); showBid(); toast('Database created!','ok');
+  }catch{setStatus('err');toast('Failed — check API key','err');}
+}
+
+function showBid(){
+  document.getElementById('binddisp').style.display='block';
+  document.getElementById('bidtxt').textContent=CFG.bid;
+  if(CFG.ak) document.getElementById('akinp').value=CFG.ak;
+}
+
+async function persist(){
+  const ok=await dbSet(DB);
+  if(!ok) toast('Saved locally (DB offline)','err');
+}
+
+async function loadRemote(){
+  if(!CFG.ak||!CFG.bid){DB=locLoad();setStatus('loc');return;}
+  setStatus('...');
+  const d=await dbGet();
+  if(d){DB=d;locSave(d);setStatus('ok');}
+  else{DB=locLoad();setStatus('err');}
+}
+
+function resolve(raw){
+  const n=raw.trim().toLowerCase();
+  for(const g of (DB.aliases||[])){
+    if(g.names.map(x=>x.toLowerCase()).includes(n)) return g.displayName;
+  }
+  return raw.trim();
+}
+
+// ---- LEADERBOARD ----
+let lbSort='winRate';
+
+function computeStats(){
+  const pl={};
+  (DB.games||[]).forEach(g=>{
+    ['team1','team2'].forEach(t=>{
+      const w=t===g.winner;
+      (g[t]||[]).forEach(p=>{
+        const rn=resolve(p.name); if(!rn) return;
+        if(!pl[rn]) pl[rn]={name:rn,aliases:new Set(),games:0,wins:0,kills:0,deaths:0,assists:0,cs:0,gold:0,mvps:0};
+        const x=pl[rn]; x.games++; if(w)x.wins++;
+        x.kills+=(p.kills||0);x.deaths+=(p.deaths||0);x.assists+=(p.assists||0);
+        x.cs+=(p.cs||0);x.gold+=(p.gold||0);
+        if(p.name.trim()!==rn) x.aliases.add(p.name.trim());
+      });
+    });
+  });
+  (DB.games||[]).forEach(g=>{
+    const wp=g[g.winner]||[];
+    if(!wp.length) return;
+    // normalize ALL stats 0-1 within the team so weights are actually equal
+    const maxGold=Math.max(...wp.map(p=>p.gold||0))||1;
+    const maxCS=Math.max(...wp.map(p=>p.cs||0))||1;
+    const kdaOf=p=>(p.deaths||0)===0?((p.kills||0)+(p.assists||0)):((p.kills||0)+(p.assists||0))/(p.deaths||1);
+    const maxKDA=Math.max(...wp.map(kdaOf))||1;
+    const score=p=>
+      (kdaOf(p)/maxKDA)*0.40 +          // 40% KDA (normalized)
+      ((p.gold||0)/maxGold)*0.35 +       // 35% Gold (normalized)
+      ((p.cs||0)/maxCS)*0.25;            // 25% CS (normalized)
+    const mv=wp.reduce((b,p)=>(!b||score(p)>score(b))?p:b,null);
+    if(mv){const r=resolve(mv.name);if(pl[r])pl[r].mvps++;}
+  });
+  return Object.values(pl).map(p=>({
+    ...p,aliases:[...p.aliases],
+    kda:p.deaths===0?(p.kills+p.assists).toFixed(2):((p.kills+p.assists)/p.deaths).toFixed(2),
+    winRate:p.games>0?Math.round(p.wins/p.games*100):0,
+    avgKills:p.games>0?(p.kills/p.games).toFixed(1):'0.0',
+    avgDeaths:p.games>0?(p.deaths/p.games).toFixed(1):'0.0',
+    avgAssists:p.games>0?(p.assists/p.games).toFixed(1):'0.0',
+    avgCS:p.games>0?Math.round(p.cs/p.games):0,
+    avgGold:p.games>0?Math.round(p.gold/p.games):0,
+  }));
+}
+
+const SORTS=[{k:'winRate',l:'Win %'},{k:'kda',l:'KDA'},{k:'avgKills',l:'Kills'},{k:'avgCS',l:'CS'},{k:'avgGold',l:'Gold'},{k:'mvps',l:'MVPs'},{k:'games',l:'Games'}];
+
+function renderLB(){
+  const pl=computeStats(), gs=DB.games||[];
+  const mMVP=[...pl].sort((a,b)=>b.mvps-a.mvps)[0];
+  const mWR=[...pl].sort((a,b)=>b.winRate-a.winRate)[0];
+  const mKL=[...pl].sort((a,b)=>b.kills-a.kills)[0];
+  const mGold=[...pl].sort((a,b)=>b.gold-a.gold)[0];
+  document.getElementById('gstats').innerHTML=`
+    <div class="stat-card"><div class="lbl">Total Games</div><div class="val">${gs.length}</div><div class="sub">recorded</div></div>
+    <div class="stat-card"><div class="lbl">Players</div><div class="val">${pl.length}</div><div class="sub">tracked</div></div>
+    <div class="stat-card"><div class="lbl">MVP Leader</div><div class="val" style="font-size:14px;">${mMVP?mMVP.name:'—'}</div><div class="sub">${mMVP?mMVP.mvps+' MVPs':'no data'}</div></div>
+    <div class="stat-card"><div class="lbl">Best Win Rate</div><div class="val" style="font-size:14px;">${mWR?mWR.name:'—'}</div><div class="sub">${mWR?mWR.winRate+'%':'no data'}</div></div>
+    <div class="stat-card"><div class="lbl">Kill Leader</div><div class="val" style="font-size:14px;">${mKL?mKL.name:'—'}</div><div class="sub">${mKL?mKL.kills+' total':'no data'}</div></div>
+    <div class="stat-card" style="border-top-color:var(--gold);"><div class="lbl">💰 Richest</div><div class="val" style="font-size:14px;">${mGold?mGold.name:'—'}</div><div class="sub">${mGold?mGold.gold.toLocaleString()+' total gold':'no data'}</div></div>`;
+  document.getElementById('lbsorts').innerHTML=
+    '<span style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--text-dim);text-transform:uppercase;">Sort by:</span>'+
+    SORTS.map(o=>`<div class="chip ${lbSort===o.k?'on':''}" onclick="setSort('${o.k}')">${o.l}</div>`).join('');
+  if(!pl.length){document.getElementById('lbcont').innerHTML='<div class="empty"><i class="ti ti-trophy"></i><h3>No games yet</h3><p>Add your first game!</p></div>';return;}
+  const s=[...pl].sort((a,b)=>parseFloat(b[lbSort])-parseFloat(a[lbSort]));
+  document.getElementById('lbcont').innerHTML=`<table class="lb"><thead><tr>
+    <th>#</th><th>Player</th><th>Games</th><th>Win Rate</th><th>KDA</th><th>K / D / A</th><th>Avg CS</th><th>Avg Gold</th><th>MVPs</th>
+  </tr></thead><tbody>${s.map((p,i)=>`<tr class="r${i+1}">
+    <td><span class="rn">${i+1}</span></td>
+    <td><span class="pname">${p.name}</span>${p.mvps>0?`<span class="mvpb">★ MVP ×${p.mvps}</span>`:''} ${p.aliases.length?`<span class="atag">${p.aliases.join(', ')}</span>`:''}</td>
+    <td>${p.games}</td>
+    <td><div class="wrbar"><div class="wrfill"><div class="wrfill-in" style="width:${p.winRate}%"></div></div><span style="font-size:11px;min-width:28px;">${p.winRate}%</span></div></td>
+    <td style="font-weight:700;color:var(--blue)">${p.kda}</td>
+    <td style="font-size:11px;"><span style="color:var(--blue)">${p.avgKills}</span>/<span style="color:var(--red)">${p.avgDeaths}</span>/<span style="color:var(--text-muted)">${p.avgAssists}</span><span style="color:var(--text-dim);font-size:10px;margin-left:6px;">(${p.kills} total)</span></td>
+    <td>${p.avgCS} <span style="color:var(--text-dim);font-size:10px;">(${p.cs} total)</span></td><td style="color:var(--gold)">${p.avgGold.toLocaleString()} <span style="color:var(--text-dim);font-size:10px;">(${p.gold.toLocaleString()} total)</span></td>
+    <td style="color:var(--gold);font-weight:700;">${p.mvps}</td>
+  </tr>`).join('')}</tbody></table>`;
+}
+function setSort(k){lbSort=k;renderLB();}
+
+// ---- GAMES ----
+function renderGames(){
+  const gs=(DB.games||[]).slice().reverse();
+  if(!gs.length){document.getElementById('gcont').innerHTML='<div class="empty"><i class="ti ti-calendar"></i><h3>No games recorded</h3><p>Add your first game!</p></div>';return;}
+  document.getElementById('gcont').innerHTML=gs.map(g=>{
+    const t1k=(g.team1||[]).reduce((s,p)=>s+(p.kills||0),0);
+    const t2k=(g.team2||[]).reduce((s,p)=>s+(p.kills||0),0);
+    const names=[...(g.team1||[]),...(g.team2||[])].map(p=>resolve(p.name)).filter(Boolean);
+    const imgs=g.images||[];
+    return `<div class="game-card ${g.winner==='team1'?'win':'loss'}" onclick="openDet('${g.id}')">
+      <div><div class="gres ${g.winner==='team1'?'win':'loss'}">${g.winner==='team1'?'Team 1 Win':'Team 2 Win'}</div><div class="gdate">${g.date||'—'}</div><div class="gdate">${g.duration||''}</div></div>
+      <div>
+        <div class="plist">${names.slice(0,10).map(n=>`<div class="pchip">${n}</div>`).join('')}</div>
+        <div class="tgal" onclick="event.stopPropagation()">
+          ${imgs.slice(0,4).map(img=>`<img class="thumb" src="${img}" onclick="openIV('${img}')">`).join('')}
+          <button class="addref" onclick="event.stopPropagation();addRef('${g.id}')"><i class="ti ti-photo-plus"></i> Add</button>
+        </div>
+      </div>
+      <div class="gscore"><span style="color:var(--blue)">${t1k}</span><span class="vs">vs</span><span style="color:var(--red)">${t2k}</span><div style="font-size:10px;color:var(--text-muted);margin-top:2px;">Total kills</div></div>
+      <button class="del-btn" onclick="event.stopPropagation();delGame('${g.id}')"><i class="ti ti-trash"></i></button>
+    </div>`;
+  }).join('');
+}
+
+async function delGame(id){
+  if(!confirm('Delete this game?')) return;
+  DB.games=(DB.games||[]).filter(g=>g.id!==id);
+  await persist(); renderGames(); toast('Game deleted','err');
+}
+
+// ---- DETAIL ----
+function openDet(id){
+  const g=(DB.games||[]).find(x=>x.id===id); if(!g) return;
+  const imgs=g.images||[];
+  const th=(team,lbl,win)=>`
+    <div class="dph" style="color:${win?'var(--win)':'var(--loss)'}">${lbl} ${win?'✓ WIN':'LOSS'}</div>
+    <div class="dp" style="color:var(--text-muted);font-size:10px;font-weight:700;letter-spacing:1px;"><span>Player</span><span>KDA</span><span>CS</span><span>Gold</span></div>
+    ${(g[team]||[]).map(p=>`<div class="dp">
+      <span style="font-weight:700;color:var(--text-bright)">${resolve(p.name)}${resolve(p.name)!==p.name?' <span style="font-size:10px;color:var(--text-dim)">('+p.name+')</span>':''}</span>
+      <span><span style="color:var(--blue)">${p.kills||0}</span>/<span style="color:var(--red)">${p.deaths||0}</span>/<span style="color:var(--text-muted)">${p.assists||0}</span></span>
+      <span>${p.cs||0}</span><span style="color:var(--gold)">${(p.gold||0).toLocaleString()}</span>
+    </div>`).join('')}`;
+  document.getElementById('detcont').innerHTML=`
+    <div class="mtitle"><i class="ti ti-swords"></i>${g.date||'Unknown'} — ${g.duration||''}${g.notes?`<span style="font-size:10px;background:var(--bg-panel);border:1px solid var(--border);padding:2px 6px;border-radius:2px;margin-left:auto;">${g.notes}</span>`:''}</div>
+    ${imgs.length?`<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:1rem;">${imgs.map(img=>`<img src="${img}" style="height:65px;object-fit:contain;cursor:pointer;border:1px solid var(--border);" onclick="openIV('${img}')">`).join('')}</div>`:''}
+    <button class="addref" style="margin-bottom:1rem;" onclick="addRef('${id}')"><i class="ti ti-photo-plus"></i> Add screenshot</button>
+    ${th('team1','Team 1',g.winner==='team1')}<div style="height:1rem;"></div>${th('team2','Team 2',g.winner==='team2')}`;
+  document.getElementById('detmod').classList.add('open');
+}
+function closeDet(){document.getElementById('detmod').classList.remove('open');}
+
+// ---- ALIASES ----
+function renderAliases(){
+  const gr=DB.aliases||[];
+  if(!gr.length){document.getElementById('acont').innerHTML='<div class="empty"><i class="ti ti-users-group"></i><h3>No player groups yet</h3><p>Create a group to merge IGNs for one person.</p></div>';return;}
+  document.getElementById('acont').innerHTML=gr.map((g,gi)=>`
+    <div class="ag">
+      <div class="agh">
+        <div><div class="agn">${g.displayName}</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${g.names.length} IGN${g.names.length!==1?'s':''}</div></div>
+        <button class="btnd" onclick="delGrp(${gi})"><i class="ti ti-trash"></i> Remove</button>
+      </div>
+      <div class="achips">${g.names.map((n,ni)=>`<div class="ac">${n}<button class="acx" onclick="rmAlias(${gi},${ni})"><i class="ti ti-x"></i></button></div>`).join('')}</div>
+      <div class="aarow">
+        <input type="text" class="fi" id="ai${gi}" placeholder="Add another IGN..." onkeydown="if(event.key==='Enter')addToGrp(${gi})">
+        <button class="btnp" onclick="addToGrp(${gi})"><i class="ti ti-plus"></i> Add</button>
+      </div>
+    </div>`).join('');
+}
+
+async function addToGrp(gi){
+  const inp=document.getElementById('ai'+gi), v=inp.value.trim(); if(!v) return;
+  DB.aliases[gi].names.push(v); inp.value='';
+  await persist(); renderAliases(); renderLB(); toast(`Added "${v}"','ok`);
+}
+async function rmAlias(gi,ni){DB.aliases[gi].names.splice(ni,1);await persist();renderAliases();renderLB();}
+async function delGrp(gi){if(!confirm('Remove this group?'))return;DB.aliases.splice(gi,1);await persist();renderAliases();renderLB();toast('Group removed','err');}
+
+let nga=[];
+function openGM(){nga=[];document.getElementById('ngchips').innerHTML='';document.getElementById('gdn').value='';document.getElementById('gain').value='';document.getElementById('grpmod').classList.add('open');}
+function closeGM(){document.getElementById('grpmod').classList.remove('open');}
+function addNA(){
+  const inp=document.getElementById('gain'),v=inp.value.trim();if(!v||nga.includes(v)){inp.value='';return;}
+  nga.push(v);inp.value='';
+  document.getElementById('ngchips').innerHTML=nga.map((n,i)=>`<div class="ac">${n}<button class="acx" onclick="nga.splice(${i},1);renderNGC()"><i class="ti ti-x"></i></button></div>`).join('');
+}
+function renderNGC(){document.getElementById('ngchips').innerHTML=nga.map((n,i)=>`<div class="ac">${n}<button class="acx" onclick="nga.splice(${i},1);renderNGC()"><i class="ti ti-x"></i></button></div>`).join('');}
+async function saveGrp(){
+  const n=document.getElementById('gdn').value.trim();
+  if(!n){toast('Enter display name','err');return;}
+  if(!nga.length){toast('Add at least one IGN','err');return;}
+  if(!DB.aliases)DB.aliases=[];
+  DB.aliases.push({displayName:n,names:[...nga]});
+  await persist();closeGM();renderAliases();renderLB();toast(`Group "${n}" saved!`,'ok');
+}
+
+// ---- UPLOAD ----
+let curImg=null;
+function openUp(){document.getElementById('upmod').classList.add('open');resetUp();}
+function closeUp(){document.getElementById('upmod').classList.remove('open');resetUp();}
+function resetUp(){curImg=null;document.getElementById('prev').classList.remove('v');document.getElementById('prev').src='';document.getElementById('pl').classList.remove('v');document.getElementById('pr').classList.remove('v');document.getElementById('savebtn').style.display='none';document.getElementById('finp').value='';}
+
+async function toB64(file){return new Promise((r,j)=>{const x=new FileReader();x.onload=()=>r(x.result);x.onerror=j;x.readAsDataURL(file);});}
+
+async function onFile(e){
+  const f=e.target.files[0];if(!f)return;
+  const d=await toB64(f);curImg=d;
+  document.getElementById('prev').src=d;document.getElementById('prev').classList.add('v');
+  await doParse(d,f.type);
+}
+
+const dzEl=document.getElementById('dz');
+dzEl.addEventListener('dragover',e=>{e.preventDefault();dzEl.classList.add('over');});
+dzEl.addEventListener('dragleave',()=>dzEl.classList.remove('over'));
+dzEl.addEventListener('drop',async e=>{
+  e.preventDefault();dzEl.classList.remove('over');
+  const f=e.dataTransfer.files[0];if(!f||!f.type.startsWith('image/'))return;
+  const d=await toB64(f);curImg=d;
+  document.getElementById('prev').src=d;document.getElementById('prev').classList.add('v');
+  await doParse(d,f.type);
+});
+
+async function callGemini(ak, b64, mimeType){
+  const MODELS=['gemini-2.5-flash-lite','gemini-2.5-flash'];
+  const PROMPT='Analyze this League of Legends post-game scoreboard screenshot. Return ONLY valid JSON with no markdown and no backticks.\nJSON format: {"date":"YYYY-MM-DD or null if not visible","duration":"MM:SS or null","winner":"team1 or team2","team1":[{"name":"player name","kills":0,"deaths":0,"assists":0,"cs":0,"gold":0}],"team2":[same]}\n\nCRITICAL field mapping — read each column carefully:\n- kills/deaths/assists: the K/D/A column e.g. 9/7/10\n- cs: the CS or creep score column (minions+monsters, typically 50-400)\n- gold: the GOLD EARNED column (typically 8000-25000, shown as the last or second-last column)\nteam at top of scoreboard = team1. winner = team showing VICTORY. Return ONLY the JSON, nothing else.';
+  const body={contents:[{parts:[{inline_data:{mime_type:mimeType,data:b64}},{text:PROMPT}]}],generationConfig:{maxOutputTokens:1200,temperature:0}};
+
+  for(const model of MODELS){
+    // try up to 3 times per model with exponential backoff
+    for(let attempt=0;attempt<3;attempt++){
+      if(attempt>0){
+        const wait=2000*Math.pow(2,attempt-1); // 2s, 4s
+        document.querySelector('#pl p').textContent=`Rate limited — retrying in ${wait/1000}s... (${model})`;
+        await new Promise(r=>setTimeout(r,wait));
+      }
+      try{
+        const r=await fetch(
+          'https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent?key='+ak,
+          {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}
+        );
+        if(r.status===429){
+          console.warn(model+' attempt '+(attempt+1)+' got 429, will retry');
+          continue; // retry same model
+        }
+        if(!r.ok){
+          const e=await r.json().catch(()=>({}));
+          throw new Error('API '+r.status+': '+(e?.error?.message||'unknown'));
+        }
+        const dat=await r.json();
+        const txt=(dat.candidates?.[0]?.content?.parts?.[0]?.text||'').replace(/```json|```/g,'').trim();
+        if(!txt) throw new Error('Empty response');
+        return JSON.parse(txt);
+      }catch(e){
+        if(e.message&&e.message.includes('429')) continue;
+        throw e;
+      }
+    }
+    // all retries for this model failed with 429, try next model
+    console.warn(model+' quota exhausted, trying next model');
+  }
+  throw new Error('All models quota exceeded — try again in a minute');
+}
+
+async function doParse(dataUrl,mime){
+  document.getElementById('pl').classList.add('v');
+  document.querySelector('#pl p').textContent='AI is reading the screenshot...';
+  document.getElementById('pr').classList.remove('v');
+  document.getElementById('savebtn').style.display='none';
+
+  const ak=CFG.geminiKey;
+  if(!ak){
+    document.getElementById('pl').classList.remove('v');
+    fillForm({date:null,duration:null,winner:'team1',team1:Array(5).fill({name:'',kills:0,deaths:0,assists:0,cs:0,gold:0}),team2:Array(5).fill({name:'',kills:0,deaths:0,assists:0,cs:0,gold:0})});
+    document.getElementById('pr').classList.add('v');document.getElementById('savebtn').style.display='inline-flex';
+    toast('Add your free Gemini API key in Setup!','err');
+    return;
+  }
+
+  try{
+    const b64=dataUrl.split(',')[1];
+    const mimeType=mime||'image/png';
+    const parsed=await callGemini(ak,b64,mimeType);
+    fillForm(parsed);
+    document.getElementById('pl').classList.remove('v');
+    document.getElementById('pr').classList.add('v');
+    document.getElementById('savebtn').style.display='inline-flex';
+    toast('Screenshot parsed!','ok');
+  }catch(err){
+    console.error('Parse failed:',err);
+    document.getElementById('pl').classList.remove('v');
+    fillForm({date:null,duration:null,winner:'team1',team1:Array(5).fill({name:'',kills:0,deaths:0,assists:0,cs:0,gold:0}),team2:Array(5).fill({name:'',kills:0,deaths:0,assists:0,cs:0,gold:0})});
+    document.getElementById('pr').classList.add('v');
+    document.getElementById('savebtn').style.display='inline-flex';
+    toast(err.message.includes('quota')||err.message.includes('429')?'Quota hit — fill in manually or wait 1 min':'Parse error — fill in manually','err');
+  }
+}
+
+function prow(p){return `<div class="pr"><input class="fi" type="text" placeholder="Name" value="${p.name||''}"><input class="fi" type="text" placeholder="K/D/A" value="${p.kills||0}/${p.deaths||0}/${p.assists||0}"><input class="fi" type="number" placeholder="CS" value="${p.cs||0}"><input class="fi" type="number" placeholder="Gold" value="${p.gold||0}"></div>`;}
+function fillForm(d){
+  document.getElementById('fdate').value=d.date||new Date().toISOString().slice(0,10);
+  document.getElementById('fdur').value=d.duration||'';
+  document.getElementById('fwin').value=d.winner||'team1';
+  const hdr='<div class="pr prh"><span>Name</span><span>K/D/A</span><span>CS</span><span>Gold</span></div>';
+  const t1=(d.team1||[]).slice(0,10);while(t1.length<5)t1.push({name:'',kills:0,deaths:0,assists:0,cs:0,gold:0});
+  const t2=(d.team2||[]).slice(0,10);while(t2.length<5)t2.push({name:'',kills:0,deaths:0,assists:0,cs:0,gold:0});
+  document.getElementById('t1rows').innerHTML=hdr+t1.map(prow).join('');
+  document.getElementById('t2rows').innerHTML=hdr+t2.map(prow).join('');
+}
+
+function rdTeam(id){
+  return [...document.getElementById(id+'rows').querySelectorAll('.pr:not(.prh)')].map(r=>{
+    const ins=r.querySelectorAll('input'),n=ins[0].value.trim();if(!n)return null;
+    const kda=ins[1].value.split('/');
+    return{name:n,kills:parseInt(kda[0])||0,deaths:parseInt(kda[1])||0,assists:parseInt(kda[2])||0,cs:parseInt(ins[2].value)||0,gold:parseInt(ins[3].value)||0};
+  }).filter(Boolean);
+}
+
+async function saveGame(){
+  const t1=rdTeam('t1'),t2=rdTeam('t2');
+  if(!t1.length&&!t2.length){toast('Add at least one player','err');return;}
+  const g={id:Date.now().toString(),date:document.getElementById('fdate').value,duration:document.getElementById('fdur').value,winner:document.getElementById('fwin').value,notes:document.getElementById('fnotes').value,team1:t1,team2:t2,images:curImg?[curImg]:[],createdAt:Date.now()};
+  if(!DB.games)DB.games=[];DB.games.push(g);
+  const btn=document.getElementById('savebtn');btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Saving...';
+  await persist();btn.disabled=false;btn.innerHTML='<i class="ti ti-check"></i> Save Game';
+  closeUp();go('leaderboard');toast('Game saved!','ok');
+}
+
+// ---- REF IMAGE ----
+let refId=null;
+function addRef(id){
+  refId=id;const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+  inp.onchange=async e=>{
+    const f=e.target.files[0];if(!f)return;
+    const b=await toB64(f);
+    const g=(DB.games||[]).find(x=>x.id===refId);if(!g)return;
+    if(!g.images)g.images=[];g.images.push(b);
+    await persist();renderGames();
+    if(document.getElementById('detmod').classList.contains('open'))openDet(refId);
+    toast('Screenshot added!','ok');
+  };inp.click();
+}
+
+// ---- IMAGE VIEWER ----
+function openIV(src){document.getElementById('ivimg').src=src;document.getElementById('iv').classList.add('open');}
+function closeIV(){document.getElementById('iv').classList.remove('open');}
+
+// ---- EXPORT/IMPORT ----
+function exportD(){const b=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='cgv-backup.json';a.click();}
+function importD(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();r.onload=async ev=>{try{const d=JSON.parse(ev.target.result);if(!d.games)throw 0;DB=d;await persist();renderLB();renderGames();renderAliases();toast('Imported!','ok');}catch{toast('Invalid file','err');};};r.readAsText(f);
+}
+
+// ---- NAV ----
+function go(v){
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.getElementById('tab-'+v).classList.add('active');
+  if(v==='leaderboard')renderLB();
+  if(v==='games')renderGames();
+  if(v==='aliases')renderAliases();
+  if(v==='settings'){if(CFG.ak)document.getElementById('akinp').value=CFG.ak;if(CFG.bid)showBid();if(CFG.geminiKey){document.getElementById('antkinp').value=CFG.geminiKey;document.getElementById('antkst').innerHTML='<span style="color:var(--win)">&#10003; Key saved &mdash; parsing enabled.</span>';}}
+}
+
+function toast(m,t=''){
+  const el=document.getElementById('tst');
+  el.className='toast show '+(t||'');
+  el.innerHTML=`<i class="ti ti-${t==='err'?'alert-circle':'check'}"></i> ${m}`;
+  setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeUp();closeDet();closeIV();closeGM();}});
+
+// ---- INIT ----
+(async()=>{await loadRemote();renderLB();if(CFG.bid)showBid();})();
+</script>
+</body>
+</html>
